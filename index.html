@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Browse Hamilton's 2026 mayoral candidates by issue and see who's running for council in your ward.">
+<title>Hamilton Votes 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a printed municipal ballot — ruled candidate rows with marking ovals, an issue strip that re-reads every row, and a side-by-side comparison sheet. */
+:root{
+  --paper:#f3f5f2;      /* ballot stock, faint green bias */
+  --sheet:#fbfcfa;
+  --ink:#1b2620;
+  --muted:#5b6a61;
+  --rule:#cfd8d1;
+  --oak:#2f6b4a;        /* Hamilton civic green accent */
+  --oak-soft:#e1ece4;
+  --mark:#1d3fa8;       /* ballot pen blue: only for marks */
+  --mark-soft:#e3e8f7;
+  --font-display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --font-body:"Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#121813;--sheet:#182019;--ink:#e3ebe5;--muted:#9aaba0;--rule:#2d3a31;
+  --oak:#7cc39a;--oak-soft:#1f3327;--mark:#93abf5;--mark-soft:#1f2848;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#121813;--sheet:#182019;--ink:#e3ebe5;--muted:#9aaba0;--rule:#2d3a31;
+  --oak:#7cc39a;--oak-soft:#1f3327;--mark:#93abf5;--mark-soft:#1f2848;color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.55;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:28px 64px}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;margin:0;line-height:1.1}
+.label{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--oak)}
+:focus-visible{outline:2px solid var(--mark);outline-offset:2px}
+
+/* Header */
+header{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:end;border-bottom:3px solid var(--ink);padding-bottom:18px}
+header h1{font-size:clamp(34px,6vw,58px);font-weight:800;letter-spacing:-.02em}
+header p{margin:8px 0 0;max-width:60ch;color:var(--muted)}
+.countdown{font-family:var(--font-mono);text-align:right;font-size:13px;color:var(--muted)}
+.countdown b{display:block;font-family:var(--font-display);font-size:40px;color:var(--ink);line-height:1;font-variant-numeric:tabular-nums}
+@media (max-width:620px){header{grid-template-columns:1fr}.countdown{text-align:left}}
+
+/* Notice */
+.notice{background:var(--oak-soft);border-left:4px solid var(--oak);padding:12px 16px;font-size:15px}
+.notice strong{font-family:var(--font-display)}
+
+/* Controls */
+.controls{display:flex;flex-direction:column;gap:12px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);padding-block:10px;border-bottom:1px solid var(--rule)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab{font-family:var(--font-display);font-weight:700;font-size:15px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);padding:7px 14px;border-radius:2px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chip{font-family:var(--font-mono);font-size:12.5px;border:1px solid var(--rule);background:var(--sheet);color:var(--ink);padding:5px 10px;border-radius:999px;cursor:pointer}
+.chip:hover{border-color:var(--oak)}
+.chip[aria-pressed="true"]{background:var(--oak);border-color:var(--oak);color:var(--sheet)}
+
+/* Ballot rows */
+.ballot{background:var(--sheet);border:1.5px solid var(--ink)}
+.ballot-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 16px;border-bottom:1.5px solid var(--ink);font-family:var(--font-mono);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+.row{display:grid;grid-template-columns:44px minmax(0,1fr);gap:14px;padding:18px 16px;border-bottom:1px solid var(--rule)}
+.row:last-child{border-bottom:0}
+.oval{width:36px;height:22px;border:2px solid var(--ink);border-radius:50%;background:transparent;cursor:pointer;margin-top:6px;padding:0}
+.oval[aria-pressed="true"]{background:var(--mark);border-color:var(--mark)}
+.row-main{min-width:0;display:flex;flex-direction:column;gap:10px}
+.row-top{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline}
+.name{font-size:26px;font-weight:700;letter-spacing:-.01em}
+.name .sur{text-transform:uppercase;letter-spacing:.02em}
+.role{font-family:var(--font-mono);font-size:12px;padding:2px 8px;border:1px solid var(--rule);border-radius:2px;color:var(--muted)}
+.slogan{font-style:italic;color:var(--muted);margin:0}
+.bio{margin:0;max-width:68ch}
+.issue-hit{background:var(--oak-soft);padding:10px 14px;border-radius:2px;max-width:72ch}
+.issue-hit .label{color:var(--oak);display:block;margin-bottom:2px}
+.issue-hit p{margin:0}
+details{border-top:1px dashed var(--rule);padding-top:8px}
+summary{cursor:pointer;font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--oak)}
+dl.pos{display:grid;grid-template-columns:150px minmax(0,1fr);gap:8px 16px;margin:12px 0 4px}
+dl.pos dt{font-family:var(--font-mono);font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding-top:3px}
+dl.pos dd{margin:0}
+@media (max-width:560px){dl.pos{grid-template-columns:1fr;gap:2px}dl.pos dd{margin-bottom:10px}}
+.contact{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--font-mono);font-size:12.5px;color:var(--muted)}
+.contact span{user-select:all}
+.empty{padding:14px 16px;color:var(--muted);font-style:italic}
+
+/* Compare sheet */
+.sheet{overflow-x:auto;background:var(--sheet);border:1.5px solid var(--ink)}
+table{border-collapse:collapse;min-width:720px;width:100%;table-layout:fixed}
+th,td{text-align:left;vertical-align:top;padding:12px 14px;border-bottom:1px solid var(--rule);font-size:14.5px}
+th:first-child,td:first-child{width:180px}
+thead th{font-family:var(--font-display);font-size:15px;border-bottom:1.5px solid var(--ink);position:sticky;top:0;background:var(--sheet)}
+tbody th{font-family:var(--font-display);font-size:16px;font-weight:700;vertical-align:top}
+tbody th small{display:block;font-family:var(--font-mono);font-size:11px;font-weight:400;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:3px}
+tbody th.marked{box-shadow:inset 4px 0 0 var(--mark)}
+td.na{color:var(--muted);font-style:italic}
+
+/* Shortlist */
+.shortlist{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:14px}
+.pill{font-family:var(--font-display);font-weight:700;background:var(--mark-soft);color:var(--mark);padding:3px 10px;border-radius:999px}
+
+/* Ward selector */
+.wardgrid{display:flex;flex-wrap:wrap;gap:6px}
+.wardbtn{font-family:var(--font-mono);font-size:13px;font-weight:500;border:1.5px solid var(--ink);background:var(--sheet);color:var(--ink);padding:6px 11px;border-radius:2px;cursor:pointer}
+.wardbtn[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+
+/* Voting */
+.vote{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.vote section{background:var(--sheet);border:1px solid var(--rule);padding:16px;display:flex;flex-direction:column;gap:6px}
+.vote h3{font-size:18px}
+.vote ul{margin:0;padding-left:18px}
+footer{font-size:13px;color:var(--muted);border-top:1px solid var(--rule);padding-top:14px;display:flex;flex-direction:column;gap:6px}
+footer ul{margin:0;padding-left:18px}
+@media (prefers-reduced-motion:no-preference){.oval{transition:background .12s}}
+</style>
+<style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="label">City of Hamilton · Municipal election · Mayor &amp; Ward Council</div>
+      <h1>Hamilton Votes 2026</h1>
+      <p>Thirteen mayoral candidates and the full slate running in all 15 wards, for the October 26 municipal election. Compare the mayoral candidates by issue, or look up who's running where you live. Positions come from the candidates' own words and campaign material.</p>
+    </div>
+    <div class="countdown"><b id="days">6</b>days to Election Day<br>Mon Oct 26</div>
+  </header>
+
+  <div class="notice" id="notice"><strong>Advance voting has ended.</strong> Ballot-on-demand voting is open at Hamilton City Hall, Oct. 19–23, 9 a.m. to 4 p.m. Otherwise, vote on Election Day, Monday Oct. 26, 10 a.m. to 8 p.m.</div>
+
+  <div class="controls">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-ballot" aria-selected="true">Mayor</button>
+      <button class="tab" role="tab" id="tab-compare" aria-selected="false">Compare by issue</button>
+      <button class="tab" role="tab" id="tab-ward" aria-selected="false">Your ward</button>
+      <button class="tab" role="tab" id="tab-vote" aria-selected="false">How to vote</button>
+    </div>
+    <div class="chips" id="chips" aria-label="Filter by issue"></div>
+    <div class="shortlist" id="shortlist"></div>
+  </div>
+
+  <main id="view-ballot">
+    <div class="ballot">
+      <div class="ballot-head"><span>Vote for one — Mayor</span><span>Tap an oval to shortlist · saved only in this browser</span></div>
+      <div id="rows"></div>
+    </div>
+  </main>
+
+  <main id="view-compare" hidden>
+    <div class="sheet"><table id="table"></table></div>
+  </main>
+
+  <main id="view-ward" hidden>
+    <div class="label" style="margin-bottom:8px">Pick your ward</div>
+    <div class="wardgrid" id="wardgrid"></div>
+    <div class="notice" id="ward-desc" style="margin-top:16px"></div>
+    <div class="ballot" id="ward-ballot" style="margin-top:16px" hidden>
+      <div class="ballot-head"><span id="ward-head-left">Vote for one — Ward councillor</span><span>Tap an oval to shortlist</span></div>
+      <div id="ward-rows"></div>
+    </div>
+  </main>
+
+  <main id="view-vote" hidden>
+    <div class="vote">
+      <section>
+        <div class="label">Election Day</div>
+        <h3>Monday, October 26</h3>
+        <p>Polls open 10 a.m. to 8 p.m. You can vote at any voting location within your ward — your voter notification letter lists nearby options.</p>
+      </section>
+      <section>
+        <div class="label">Advance &amp; early voting</div>
+        <h3>October 3–18 (ended)</h3>
+        <p>Weekend advance polls (Oct. 3–4, 10–11, 17–18) have closed. Ballot-on-demand voting continues at Hamilton City Hall, Oct. 19–23, 9 a.m. to 4 p.m., through to the day before Election Day.</p>
+      </section>
+      <section>
+        <div class="label">What to bring</div>
+        <h3>One piece of ID</h3>
+        <p>Bring one piece of identification showing your name and home address. You don't need your voter notification letter to vote, but it speeds things up.</p>
+      </section>
+      <section>
+        <div class="label">Your full ballot</div>
+        <h3>Three races</h3>
+        <ul><li>Mayor (city-wide)</li><li>Councillor for your ward (1 of 15)</li><li>School board trustee</li></ul>
+        <p>Confirm your ward and voting locations at <a href="https://www.hamilton.ca/city-council/municipal-election" target="_blank" rel="noopener">hamilton.ca/municipal-election</a>.</p>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div>Sources: CBC Hamilton — <a href="https://www.cbc.ca/news/canada/hamilton/whos-running-hamilton-2026-9.7249262" target="_blank" rel="noopener">"Who's running in Hamilton's 2026 municipal election"</a> (ward rosters and bios), <a href="https://www.cbc.ca/news/canada/hamilton/mayoral-candidates-hamilton-2026-election-9.7355252" target="_blank" rel="noopener">"Who's running for mayor in Hamilton?"</a> (candidate survey responses) and <a href="https://www.cbc.ca/news/canada/hamilton/mayoral-candidates-on-data-centres-hamilton-2026-election-9.7357302" target="_blank" rel="noopener">"Here's where Hamilton's candidates for mayor stand on data centres"</a>; mayoral candidates' own campaign websites where cited; City of Hamilton municipal election information. Compiled Oct. 20, 2026. Platforms may change before Election Day; check each candidate's own site for the latest.</div>
+    <div>This guide does not endorse any candidate. Every registered candidate is listed, including those whose views the authors find objectionable. "Not stated" means the candidate did not address that issue in the sources above when this guide was compiled.</div>
+  </footer>
+</div>
+
+<script>
+const ISSUES = [
+  {id:"taxes", label:"Taxes & spending"},
+  {id:"housing", label:"Housing & homelessness"},
+  {id:"safety", label:"Public safety"},
+  {id:"transit", label:"Roads & transit"},
+  {id:"economy", label:"Jobs & economy"},
+  {id:"datacentres", label:"AI data centres"},
+  {id:"open", label:"Open government"},
+  {id:"environment", label:"Environment"}
+];
+
+const C = [
+ {id:"austin", first:"Sasha", sur:"Austin", role:"Patient navigator", slogan:"",
+  bio:"Born-and-raised Hamiltonian and patient navigator who has worked in healthcare, housing and social services. Says her frontline experience sets her apart from other candidates.",
+  site:"https://www.youtube.com/@sashaaustin4hamiltonmayor", email:"", phone:"",
+  p:{
+   taxes:"Would reduce taxes by restructuring city hall to cut redundant positions and wasteful spending, and track every dollar spent on a public live database.",
+   housing:"Would repurpose vacant buildings and schools into healthcare hubs offering on-site treatment for mental illness and substance use; once people are \"rehabilitated,\" would move them into permanent supportive housing.",
+   safety:"Lists reducing crime as a top-three priority, tied to her plan to address open drug use through the healthcare-hub model.",
+   transit:"",
+   economy:"",
+   datacentres:"Opposes AI data centres outright — wants a strict bylaw preventing any from ever being built in Hamilton.",
+   open:"",
+   environment:""
+  }},
+ {id:"butt", first:"Ejaz", sur:"Butt", role:"Taxi-industry leader", slogan:"",
+  bio:"Veteran taxi-industry leader, founding president of the Ontario Taxi Workers Union, and former Major in the Pakistan Armed Forces. Self-funds his campaign and says he takes no donations.",
+  site:"", email:"", phone:"",
+  p:{
+   taxes:"",
+   housing:"",
+   safety:"Wants to work closely with the Hamilton Police Chief and community leaders to target high-crime areas and make neighbourhoods safer.",
+   transit:"",
+   economy:"Wants more job and economic-growth opportunities, pointing to Hamilton's shift from a \"steel city\" to a \"health care city\" and a continuing shortage of skilled staff.",
+   datacentres:"Disagreed with council's vote against a moratorium — wants a cautious approach until residents get clear answers on energy and environmental impact, and wants municipalities to have greater authority to regulate data centres.",
+   open:"",
+   environment:"Lists protecting the environment as a top-three priority, including opposing converting green and farm land into residential, commercial or industrial zones."
+  }},
+ {id:"cherkewski", first:"David Mark", sur:"Cherkewski", role:"Anti-poverty advocate", slogan:"",
+  bio:"Anti-poverty advocate and former recipient of Ontario's Basic Income Pilot. Says he's running because he feels Hamilton is on the wrong track; did not respond to CBC's candidate survey and doesn't appear to have a public campaign website.",
+  site:"", email:"", phone:"",
+  p:{taxes:"",housing:"",safety:"",transit:"",economy:"",datacentres:"",open:"",environment:""}},
+ {id:"cooper", first:"Rob", sur:"Cooper", role:"Ward 8 councillor", slogan:"",
+  bio:"Current Ward 8 councillor, elected in a September 2025 byelection — council's newest member. A chartered professional accountant with senior finance roles at Stelco, TD Bank, McMaster University and Manulife.",
+  site:"https://www.voterobcooper.com/", email:"", phone:"",
+  p:{
+   taxes:"Wants property-tax increases held at or below inflation, stronger financial discipline, results-based budgeting, and tighter procurement and financial reporting.",
+   housing:"Treats homelessness mainly as a safety and accountability issue, tying housing-related investment to addiction, mental-health and rehabilitation supports rather than a standalone housing plan.",
+   safety:"Wants Hamilton to become \"the safest city in Ontario\" through prevention, enforcement and rehabilitation on violent crime, open drug use and the root causes of homelessness; would sit on the Police Services Board for his full term.",
+   transit:"Wants a master road-improvement plan, better coordination between infrastructure projects, and would push the Province to upload the LINC and Red Hill Valley Parkway and add lanes.",
+   economy:"Wants to streamline approvals and make Hamilton more competitive for investment and job creation, tied to fixing roads and reducing congestion.",
+   datacentres:"Voted against the council moratorium. Wants each data-centre proposal evaluated individually on evidence — economic benefit, infrastructure and utility demand, environmental impact — with taxpayers and ratepayers not subsidizing private developments.",
+   open:"Central campaign theme: \"disciplined financial management, accountability and a clear vision,\" including stronger procurement and financial-reporting practices at city hall.",
+   environment:""
+  }},
+ {id:"fromm", first:"Paul", sur:"Fromm", role:"Repeat candidate", slogan:"",
+  bio:"Has a long-documented history with white-supremacist groups and causes and has led several far-right organizations; was dismissed from a teaching job with the Peel District School Board in 1993 over his political activities. Has run for Hamilton mayor several times before. Did not respond to CBC Hamilton's candidate survey.",
+  site:"", email:"", phone:"",
+  p:{taxes:"",housing:"",safety:"",transit:"",economy:"",datacentres:"",open:"",environment:""}},
+ {id:"gillespie", first:"Scarlett", sur:"Gillespie", role:"Housing & sex-work advocate", slogan:"",
+  bio:"Also known as Jelena Vermilion. Sex-work and housing advocate and executive director of the Sex Workers' Action Program (SWAP) Hamilton. Says her own experience with homelessness, incarceration, precarious work and disability shapes her approach.",
+  site:"https://scarlettformayor.ca/", email:"", phone:"",
+  p:{
+   taxes:"Wants clearer, more accessible budgets, reduced reliance on consultants, regular contract audits, and measurable performance reporting rather than relying on tax increases alone.",
+   housing:"Wants to repair and protect existing affordable and City housing stock while expanding deeply affordable, rent-geared-to-income, co-op, supportive and non-profit housing, using public land and stronger tenant protections.",
+   safety:"Wants community-led crisis response and coordinated mental-health, addiction and outreach supports so fewer situations escalate to an emergency response.",
+   transit:"Supports fully implementing the HSR Next transit overhaul and improving sidewalks and active transportation as part of her safety and accessibility priority.",
+   economy:"",
+   datacentres:"Disagreed with council voting down the moratorium. Wants a clear data-centre framework before approving major projects — site-specific zoning, disclosure of electricity/water demand, noise and emissions limits, and community-benefit agreements.",
+   open:"Wants clearer budget and spending information published, tighter scrutiny of procurement and consultants, and measurable outcomes required for major programs.",
+   environment:""
+  }},
+ {id:"harrison", first:"David", sur:"Harrison", role:"Firefighter", slogan:"",
+  bio:"Firefighter and infantry reservist with Hamilton's Argyll and Sutherland Highlanders of Canada, who has also worked as a physical education teacher and personal trainer for Olympic athletes. Says he'll donate his first six months of salary back into the city.",
+  site:"", email:"", phone:"",
+  p:{
+   taxes:"",
+   housing:"Lists affordable housing, addiction and mental health among his priorities, approached case-by-case: \"identify the problem, understand what is causing it... show the work.\"",
+   safety:"Lists crime among a long set of priorities he says he'll tackle simultaneously, without a detailed enforcement plan.",
+   transit:"Lists roads and LRT among his priorities but hasn't detailed a specific plan.",
+   economy:"",
+   datacentres:"Says he needs to understand \"the whole picture\" on data centres before taking a position; didn't commit either way on council's moratorium vote.",
+   open:"Says accountability shouldn't start only after someone is elected, and wants residents to flag mistakes in his reasoning so he can correct course.",
+   environment:"Lists pollution among the priorities he says he'll address, without further detail."
+  }},
+ {id:"horwath", first:"Andrea", sur:"Horwath", role:"Incumbent mayor", slogan:"",
+  bio:"Hamilton's incumbent mayor. Led the Ontario NDP from 2009 to 2022 and served as MPP for Hamilton Centre from 2004 to 2022, after an earlier stint as Ward 2 councillor. Did not respond to CBC Hamilton's candidate survey; positions below are drawn from her campaign website.",
+  site:"https://www.andrea4hamilton.ca/", email:"", phone:"",
+  p:{
+   taxes:"Pledges to hold property-tax increases below inflation, and wants emergency deferral, reduction and elimination options for residents and businesses struggling with city bills.",
+   housing:"Her \"Building Home Plan\" aims to move beyond emergency shelters toward permanent housing — including 2,000 new supportive housing units, using municipal land for residential development, and converting vacant downtown office space into housing.",
+   safety:"Her \"A Hamilton for Everyone\" plan proposes a clear, enforceable protocol for responding to hate-motivated activity in public spaces, developed with police and community partners.",
+   transit:"Her \"Hamilton on the Go!\" plan centres on HSR Next, which she calls the largest transformation of Hamilton's transit network in decades, alongside continuing LRT construction and replacing aging infrastructure along the line.",
+   economy:"Her \"Head of Lake Ontario Economic Action Plan\" emphasizes buying Hamilton steel, products and services wherever possible, a new business-support-officer role, and coordination with labour and business leaders on job protection.",
+   datacentres:"Voted against the council moratorium, saying Hamilton should \"take hold of this opportunity.\" Backs a not-for-profit public data centre she says would keep Canadian data in Canada, reuse a brownfield site and existing power infrastructure, and use closed-loop cooling.",
+   open:"Says she has made city hall more responsive during her term, per her campaign website's accomplishments list.",
+   environment:"Says she accelerated the city's climate action plan during her term, per her campaign website."
+  }},
+ {id:"janus", first:"Erin", sur:"Janus", role:"Filmmaker & musician", slogan:"",
+  bio:"Producer, musician, YouTuber and filmmaker who has worked on animal-rights and environmental advocacy. First run for office; says she'd put $100,000 of her own mayoral salary toward hiring a team to help deliver her priorities.",
+  site:"", email:"", phone:"",
+  p:{
+   taxes:"Lists lowering taxes as a top-three priority, without detailing a specific mechanism beyond running a leaner, self-funded team.",
+   housing:"",
+   safety:"Wants a centralized shelter model with longer-term stay options, addictions counselling and skill-building programs to address open drug use and the mental-health crisis.",
+   transit:"",
+   economy:"Wants to incentivize sustainable industries to locate in Hamilton as part of revitalizing downtown.",
+   datacentres:"Opposes data centre development in Hamilton outright, including rejecting a proposed waterfront AI data centre.",
+   open:"",
+   environment:"Has a background in environmental advocacy; her opposition to data centres is partly framed in those terms, though she hasn't stated a broader environmental platform."
+  }},
+ {id:"loomis", first:"Keanin", sur:"Loomis", role:"Steel-industry CEO", slogan:"",
+  bio:"President and CEO of the Canadian Institute of Steel Construction, and former head of the Hamilton Chamber of Commerce. Practised law in Washington, D.C. before moving to Hamilton in 2009. Came in second to Horwath in the 2022 election.",
+  site:"https://www.voteloomis.ca/", email:"", phone:"",
+  p:{
+   taxes:"Wants to \"get taxes under control\" through a city-hall turnaround review and zero-based budgeting, where services must regularly justify what they deliver and cost.",
+   housing:"Wants to modernize development approvals and reduce red tape to make housing easier to build, alongside coordinated responses to homelessness as part of his safety priority.",
+   safety:"Wants safer neighbourhoods through coordinated responses to homelessness, mental health and public disorder, and would personally sit on the Police Services Board for the full term.",
+   transit:"No standalone LRT position stated; wants better-coordinated infrastructure planning and stronger transportation connections to jobs, education and services.",
+   economy:"Wants to grow Hamilton's economy and assessment base — including through data-centre investment — to reduce long-term pressure on residential property taxes.",
+   datacentres:"Supported rejecting the moratorium, saying data centres could bring major investment, strengthen the industrial tax base and support Canadian data sovereignty — but wants clear terms on cost, jobs and community impact before approving any specific project.",
+   open:"Wants transparent reporting and measurable performance, more open and timely decision-making, and a modernized 311 service with public reporting.",
+   environment:""
+  }},
+ {id:"mitchell", first:"Pamela", sur:"Mitchell", role:"Repeat candidate", slogan:"",
+  bio:"Ran for Ward 12 council in 2022 and 2018. Did not respond to CBC Hamilton's survey and doesn't appear to have a public campaign website.",
+  site:"", email:"", phone:"",
+  p:{
+   taxes:"",
+   housing:"In a 2022 interview with CBC, said she wanted to ensure no seniors in Hamilton were homeless.",
+   safety:"",
+   transit:"In 2022, said she wanted to improve accessible bus service.",
+   economy:"",datacentres:"",open:"",environment:""
+  }},
+ {id:"walker", first:"Kevin", sur:"Walker", role:"Repeat candidate", slogan:"",
+  bio:"Did not respond to CBC Hamilton's candidate survey, but shared a short policy document directly with CBC outlining three commitments.",
+  site:"", email:"", phone:"",
+  p:{
+   taxes:"Wants to lower property taxes without cutting essential services.",
+   housing:"Wants to partner with local non-profits and use city land, including vacant buildings, to build and preserve affordable housing.",
+   safety:"",
+   transit:"Wants to cancel the LRT project, saying it will hurt businesses and be costly to maintain, and instead prioritize frequent bus service on key corridors, protected bike lanes, better sidewalk connections and faster boarding.",
+   economy:"",datacentres:"",open:"",environment:""
+  }},
+ {id:"yan", first:"Nathalie Xian Yi", sur:"Yan", role:"TCM practitioner", slogan:"",
+  bio:"Practitioner of traditional Chinese medicine and acupuncture, and founder of the Hamilton Traditional Chinese Medical Health Science Centre. Has run for municipal, provincial and federal office repeatedly since 2006. In 2025, an Ontario judge declared her a vexatious litigant over multiple lawsuits, citing more than $161,000 in unpaid legal costs.",
+  site:"", email:"", phone:"",
+  p:{
+   taxes:"Wants greater financial transparency, timely reporting, stronger oversight and disciplined spending so residents know where city money goes.",
+   housing:"Wants to move beyond \"managing\" homelessness toward measuring how many people move into stable housing and stay there, working with housing, health-care and social-service providers and the Province.",
+   safety:"Wants closer coordination between municipal services, police, emergency services and housing providers, with neighbourhood cleanliness and safety treated as a basic city responsibility.",
+   transit:"Wants existing infrastructure — roads, bridges, water and sewer systems — maintained based on condition and risk before pursuing costly new initiatives.",
+   economy:"",
+   datacentres:"Says she's unsure on the moratorium — wants independent expert evidence on electricity and water demand, environmental impact and long-term costs before deciding either way.",
+   open:"Core campaign theme: wants a public reporting system showing what the city spends, project costs, and whether projects are on budget.",
+   environment:""
+  }}
+];
+
+const WARDS = {
+ 1:{desc:"Chedoke-Cootes area, in Hamilton's west end, north of the Niagara Escarpment.", open:false, cands:[
+   {n:"Raymond R. Paquette", role:"", bio:"", site:""},
+   {n:"Mark Powell", role:"", bio:"", site:""},
+   {n:"Nathan Savelli", role:"", bio:"Works at Compass Community Health as chair of its Environmental Committee.", site:"https://www.instagram.com/savelliforward1/"},
+   {n:"Maureen Wilson", role:"Incumbent councillor", bio:"Current Ward 1 councillor, in office since 2018.", site:"https://www.maureenwilson.ca/"}
+ ]},
+ 2:{desc:"Downtown Hamilton, north of the Niagara Escarpment to the harbourfront, Wellington St. N. to the east and Queen St. to the west. Nine people are running, including the sitting councillor.", open:false, cands:[
+   {n:"Eisham Abdulkarim", role:"", bio:"Has worked as a constituency assistant and community advocate.", site:"https://sites.google.com/view/eisham-for-ward-2/home"},
+   {n:"Rodney Elesie", role:"", bio:"", site:""},
+   {n:"Daniel Greene", role:"", bio:"", site:""},
+   {n:"Bill Houston", role:"", bio:"", site:""},
+   {n:"Cameron Kroetsch", role:"Incumbent councillor", bio:"Current Ward 2 councillor, elected in 2022.", site:"https://www.instagram.com/cameronkroetsch/"},
+   {n:"Brian Lewis", role:"", bio:"Métis and a Councillor-at-Large with the Clear Waters Council of the Métis Nation of Ontario.", site:"https://brianlewis.ca/"},
+   {n:"Kelly Oucharek", role:"", bio:"A registered nurse.", site:"https://kellyoucharek.ca/"},
+   {n:"Tony Sciara", role:"", bio:"Owner and operator of a mental health facility.", site:"https://hamiltonforward.com/"},
+   {n:"Bernard Tompkins", role:"", bio:"A realtor with experience in the skilled trades, managing crews, budgets, schedules and complex projects.", site:"https://www.bernardforward2.ca/"}
+ ]},
+ 3:{desc:"North of the Niagara Escarpment, Ottawa St. N. to the east and Wellington St. N. to the west.", open:false, cands:[
+   {n:"Wade Campbell", role:"", bio:"", site:""},
+   {n:"Christine Cayuga", role:"", bio:"From Six Nations of the Grand River; owner of the Gage Park Diner.", site:"https://christinecayugaward3.com/"},
+   {n:"Christopher De Melo", role:"", bio:"A custodian and maintenance worker with the Peel District School Board and a lifelong union activist.", site:"https://demeloforcouncil.ca/"},
+   {n:"Nrinder Nann", role:"Incumbent councillor", bio:"Current Ward 3 councillor, first elected in 2018.", site:"https://nrinder.ca/"},
+   {n:"Andrew Selman", role:"", bio:"A data and compliance analyst.", site:"https://voteandrewselman.com/"},
+   {n:"Graham Schreiber", role:"", bio:"", site:"https://www.facebook.com/p/Graham-Schreiber-Ward3-61565524146160/"},
+   {n:"Kristeen Sprague", role:"", bio:"", site:""}
+ ]},
+ 4:{desc:"East Hamilton, north of the escarpment, Ottawa St. N. to the west and the Red Hill Valley to the east.", open:false, cands:[
+   {n:"Todd Anderson", role:"", bio:"Has worked in the asphalt and construction industry and has been a landlord for 20 years.", site:"https://www.facebook.com/profile.php?id=61579786571458"},
+   {n:"Jason Farr", role:"", bio:"A former Ward 2 councillor.", site:"https://www.facebook.com/jason.farr.370/"},
+   {n:"Tammy Hwang", role:"Incumbent councillor", bio:"Current Ward 4 councillor, elected in 2022.", site:"https://www.instagram.com/tammyhwang/"},
+   {n:"Jemma Lambert", role:"", bio:"", site:""},
+   {n:"Tony Mamone", role:"", bio:"", site:""},
+   {n:"Tobin Tuff", role:"", bio:"", site:""}
+ ]},
+ 5:{desc:"East of the Red Hill Valley Parkway and north of the escarpment.", open:false, cands:[
+   {n:"Matt Francis", role:"Incumbent councillor", bio:"Current Ward 5 councillor, elected in 2022.", site:"https://mattfrancisward5.ca/"},
+   {n:"Ahmad Khan", role:"", bio:"", site:""},
+   {n:"Juanita Maldonado", role:"", bio:"A former assistant to ex-NDP MP Wayne Marston.", site:""}
+ ]},
+ 6:{desc:"East Mountain area, south of the escarpment.", open:false, cands:[
+   {n:"Melissa Debicki", role:"", bio:"A member of Skilled Trades Ontario.", site:"https://melissadebicki.com/"},
+   {n:"Tom Jackson", role:"Incumbent councillor", bio:"Current Ward 6 councillor and council's longest-serving member, first elected in 1988.", site:"https://www.tomjacksonward6.ca/"},
+   {n:"Peter Werhun", role:"", bio:"An international trade lawyer for workers and small businesses; ran for MP with the NDP in 2025.", site:"https://pete46.ca/"}
+ ]},
+ 7:{desc:"Central Mountain area, south of the escarpment, east of Upper Wellington St. and mainly west of Upper Gage Ave.", open:false, cands:[
+   {n:"Heather Beale", role:"", bio:"", site:"https://www.facebook.com/profile.php?id=61592431354824"},
+   {n:"Mark Daly", role:"", bio:"A former high school principal for Hamilton's Catholic school board.", site:"https://markdalyward7.ca/"},
+   {n:"Gordon Leslie", role:"", bio:"", site:""},
+   {n:"Esther Pauls", role:"Incumbent councillor", bio:"Current Ward 7 councillor, first elected in 2018.", site:"https://estherpauls.ca/"}
+ ]},
+ 8:{desc:"West/Central Mountain, east of Garth St. and west of Upper Wellington St. An open race — sitting councillor Rob Cooper is running for mayor.", open:true, cands:[
+   {n:"Nenos Damerchie", role:"", bio:"A small business owner and healthcare professional.", site:"https://damerchie.com/"},
+   {n:"Dawn Danko", role:"", bio:"A school board trustee for Ward 7 and former board chair; ran as the Liberal candidate for Hamilton Mountain MPP in 2025.", site:"https://dawndanko.ca/"},
+   {n:"Jonathan Morris", role:"", bio:"", site:""},
+   {n:"Pat Piro", role:"", bio:"", site:""},
+   {n:"Adlan Taramov", role:"", bio:"", site:""},
+   {n:"Jacob Tenbrinke", role:"", bio:"A former member of the Canadian Armed Forces.", site:"https://www.jacob4ward8.com/"},
+   {n:"Terry Whitehead", role:"", bio:"Former councillor for Ward 8 (2003–2018) and Ward 14 (2018–2022). In 2021 he was sanctioned by the city's integrity commissioner for bullying staff.", site:""}
+ ]},
+ 9:{desc:"Upper Stoney Creek, south of the escarpment, east of the Red Hill Valley Parkway and west of Grimsby.", open:false, cands:[
+   {n:"Brad Clark", role:"Incumbent councillor", bio:"Current Ward 9 councillor, first elected in 2006, re-elected in 2018 after running for mayor in 2014. Also a former Progressive Conservative MPP for Stoney Creek.", site:"https://bradclarkreport.com/"},
+   {n:"Abhijeet Gill", role:"", bio:"A background in business, real estate and client advocacy.", site:"https://ward9gill.ca/"},
+   {n:"Brad Stapleton", role:"", bio:"Worked in law enforcement.", site:"https://www.stapletonward9.ca/"},
+   {n:"Jonathan Stathakos", role:"", bio:"A government relations advisor and small business owner, formerly a Director of Parliamentary Affairs for a Conservative MP.", site:"https://votejonathan.ca/about-jonathan/"},
+   {n:"Eileen Walker", role:"", bio:"A retired Justice of the Peace who also worked as a social worker for 21 years; ran for the Liberals in Hamilton Centre in the 2025 provincial election.", site:"https://voteeileenwalker.com/"}
+ ]},
+ 10:{desc:"Lower Stoney Creek, north of the escarpment, east of Gray Rd. and west of Grimsby. The busiest race in the city, after incumbent Jeff Beattie withdrew to run for MPP (and won that byelection).", open:true, cands:[
+   {n:"Cal DiFalco", role:"", bio:"", site:""},
+   {n:"Eugene Farago", role:"", bio:"", site:""},
+   {n:"Olivia \"Moy\" Fung", role:"", bio:"Experience in business, non-profits and advocacy.", site:"https://www.oliviafung.ca/"},
+   {n:"Sam Gamble", role:"", bio:"", site:""},
+   {n:"Akash Grewal", role:"", bio:"Worked in finance and now owns a mortgage business.", site:"https://www.instagram.com/akash4ward10/"},
+   {n:"Michael T. Loomans", role:"", bio:"", site:""},
+   {n:"Ivan Luksic", role:"", bio:"", site:""},
+   {n:"Tanjoban Nijjar", role:"", bio:"A small business owner, nutritionist and fitness coach.", site:"https://www.votenijjar.ca/"},
+   {n:"Larry Paletta", role:"", bio:"", site:"https://votelarryp.com/"},
+   {n:"Vince Rigitano", role:"", bio:"A part-time actor and marathon runner.", site:"https://vincerigitano.ca/"},
+   {n:"Nicole Trombetta", role:"", bio:"An entrepreneur with a background in legal services and co-founder of Boots in the Creek, a country music festival.", site:"https://nicoletrombetta.com/"}
+ ]},
+ 11:{desc:"Community of Glanbrook.", open:false, cands:[
+   {n:"Damon Mombourquette", role:"", bio:"A truck and coach technician who has also worked in agriculture.", site:""},
+   {n:"Aaron Post", role:"", bio:"", site:""},
+   {n:"Mark Tadeson", role:"Incumbent councillor", bio:"Current Ward 11 councillor, first elected in 2022.", site:""}
+ ]},
+ 12:{desc:"Ancaster area, extending into west Flamborough.", open:false, cands:[
+   {n:"Fred Bennink", role:"", bio:"A business owner and former member of the Hamilton Police Services Board; was the Progressive Conservative candidate for Hamilton West—Ancaster—Dundas in 2022.", site:""},
+   {n:"Craig Cassar", role:"Incumbent councillor", bio:"Current Ward 12 councillor, first elected in 2022.", site:""}
+ ]},
+ 13:{desc:"Mostly the community of Dundas, plus a large rural portion of Flamborough from Greensville to the city limits. An open race — incumbent Alex Wilson is not seeking re-election.", open:true, cands:[
+   {n:"Gary Aikema", role:"", bio:"A retired building contractor.", site:""},
+   {n:"Rick Kunc", role:"", bio:"An education consultant and former assistant head of school.", site:""},
+   {n:"Loren Lieberman", role:"", bio:"Former general manager of Festival of Friends; a volunteer board member with the Ontario Trillium Foundation and Summerset Women's Recovery Centre.", site:""},
+   {n:"Spencer Naylor", role:"", bio:"A senior policy advisor with the Ontario Ministry of Health.", site:""}
+ ]},
+ 14:{desc:"West Mountain, bordering Ancaster to the west and Garth St. to the east.", open:false, cands:[
+   {n:"Kojo Damptey", role:"", bio:"Former executive director of the Hamilton Centre for Civic Inclusion, a musician and McMaster University sessional instructor. Lost to the current councillor by 79 votes in 2022; ran as the NDP candidate for Hamilton Mountain MPP in 2025.", site:""},
+   {n:"Mike Spadafora", role:"Incumbent councillor", bio:"Current Ward 14 councillor, first elected in 2022. Previously ran as the Progressive Conservative candidate for Hamilton Mountain MPP.", site:""}
+ ]},
+ 15:{desc:"Flamborough East area.", open:false, cands:[
+   {n:"Chase Alford", role:"", bio:"Worked in the agriculture sector in New Brunswick and Chatham-Kent.", site:""},
+   {n:"Mary Kovacs", role:"", bio:"", site:""},
+   {n:"Ted McMeekin", role:"Incumbent councillor", bio:"Current Ward 15 councillor, first elected in 2022. Served five terms as a Liberal MPP, and was previously a city councillor and mayor of Flamborough.", site:""},
+   {n:"Colleen Stewart", role:"", bio:"A business owner.", site:""},
+   {n:"Zac Wrobel", role:"", bio:"", site:""},
+   {n:"Jeff Yaeger", role:"", bio:"", site:""}
+ ]}
+};
+
+const NA = "Not stated.";
+const $ = s => document.querySelector(s);
+let issue = null, view = "ballot", wardNum = null, marked = new Set();
+try { marked = new Set(JSON.parse(localStorage.getItem("ham-shortlist")||"[]")); } catch(e){}
+try { const v = localStorage.getItem("ham-view"); if (["ballot","compare","ward","vote"].includes(v)) view = v; } catch(e){}
+try { const w = localStorage.getItem("ham-ward"); if (w) wardNum = Number(w); } catch(e){}
+
+function save(){ try{ localStorage.setItem("ham-shortlist", JSON.stringify([...marked])); }catch(e){} }
+function wardCandId(w, i){ return "w"+w+"-"+i; }
+function wardCandLabel(id){
+  const m = /^w(\d+)-(\d+)$/.exec(id);
+  if(!m) return null;
+  const w = Number(m[1]), i = Number(m[2]);
+  const c = WARDS[w] && WARDS[w].cands[i];
+  return c ? c.n+" (Ward "+w+")" : null;
+}
+
+function chips(){
+  const box = $("#chips"); box.innerHTML = '<span class="label">Issue</span>';
+  const all = document.createElement("button");
+  all.className="chip"; all.textContent="All"; all.setAttribute("aria-pressed", issue===null);
+  all.onclick=()=>{issue=null;render()}; box.append(all);
+  ISSUES.forEach(i=>{
+    const b=document.createElement("button"); b.className="chip"; b.textContent=i.label;
+    b.setAttribute("aria-pressed", issue===i.id); b.onclick=()=>{issue = issue===i.id?null:i.id; render()};
+    box.append(b);
+  });
+  box.hidden = view!=="ballot" && view!=="compare";
+}
+
+function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+function rows(){
+  const box=$("#rows"); box.innerHTML="";
+  C.forEach(c=>{
+    const r=document.createElement("div"); r.className="row";
+    const on = marked.has(c.id);
+    const hit = issue ? `<div class="issue-hit"><span class="label">${ISSUES.find(i=>i.id===issue).label}</span><p>${esc(c.p[issue]||NA)}</p></div>` : "";
+    const list = ISSUES.map(i=>`<dt>${i.label}</dt><dd>${c.p[i.id]?esc(c.p[i.id]):`<span style="color:var(--muted);font-style:italic">${NA}</span>`}</dd>`).join("");
+    const contact = [c.site?`<a href="${c.site}" target="_blank" rel="noopener">Campaign site ↗</a>`:"", c.email, c.phone?c.phone:""].filter(Boolean).join("");
+    r.innerHTML = `
+      <button class="oval" aria-pressed="${on}" aria-label="Shortlist ${c.first} ${c.sur}"></button>
+      <div class="row-main">
+        <div class="row-top"><h2 class="name">${c.first} <span class="sur">${esc(c.sur)}</span></h2><span class="role">${c.role}</span></div>
+        <p class="bio">${esc(c.bio)}</p>
+        ${hit}
+        <details><summary>Full platform on all ${ISSUES.length} issues</summary><dl class="pos">${list}</dl></details>
+        <div class="contact">${contact}</div>
+      </div>`;
+    r.querySelector(".oval").onclick=()=>{ marked.has(c.id)?marked.delete(c.id):marked.add(c.id); save(); render(); };
+    box.append(r);
+  });
+}
+
+function table(){
+  const list = issue ? ISSUES.filter(i=>i.id===issue) : ISSUES;
+  let h = "<thead><tr><th></th>" + list.map(i=>`<th>${i.label}</th>`).join("") + "</tr></thead><tbody>";
+  C.forEach(c=>{
+    h += `<tr><th scope="row" class="${marked.has(c.id)?"marked":""}">${c.first} ${esc(c.sur)}<small>${c.role}</small></th>` + list.map(i=> c.p[i.id] ? `<td>${esc(c.p[i.id])}</td>` : `<td class="na">Not stated</td>`).join("") + "</tr>";
+  });
+  $("#table").innerHTML = h + "</tbody>";
+}
+
+function wardgrid(){
+  const box = $("#wardgrid"); box.innerHTML="";
+  for(let w=1; w<=15; w++){
+    const b = document.createElement("button");
+    b.className="wardbtn"; b.textContent="Ward "+w;
+    b.setAttribute("aria-pressed", wardNum===w);
+    b.onclick=()=>{ wardNum=w; try{localStorage.setItem("ham-ward",String(w))}catch(e){} render(); };
+    box.append(b);
+  }
+}
+
+function wardView(){
+  const descBox = $("#ward-desc"), ballotBox = $("#ward-ballot"), rowsBox = $("#ward-rows"), headLeft = $("#ward-head-left");
+  if(!wardNum){
+    descBox.innerHTML = "<strong>Select your ward above</strong> to see who's running for council there. Not sure which ward you're in? Check <a href=\"https://www.hamilton.ca/city-council/municipal-election\" target=\"_blank\" rel=\"noopener\">hamilton.ca/municipal-election</a>.";
+    ballotBox.hidden = true;
+    return;
+  }
+  const w = WARDS[wardNum];
+  descBox.innerHTML = `<strong>Ward ${wardNum}.</strong> ${esc(w.desc)}` + (w.open ? ' <span class="role" style="margin-left:6px">Open race — no incumbent running</span>' : "");
+  ballotBox.hidden = false;
+  headLeft.textContent = "Vote for one — Ward " + wardNum + " councillor";
+  rowsBox.innerHTML = "";
+  w.cands.forEach((c,i)=>{
+    const id = wardCandId(wardNum, i);
+    const on = marked.has(id);
+    const r = document.createElement("div"); r.className="row";
+    const contact = c.site ? `<a href="${c.site}" target="_blank" rel="noopener">Campaign site ↗</a>` : "";
+    r.innerHTML = `
+      <button class="oval" aria-pressed="${on}" aria-label="Shortlist ${esc(c.n)}"></button>
+      <div class="row-main">
+        <div class="row-top"><h2 class="name">${esc(c.n)}</h2>${c.role?`<span class="role">${c.role}</span>`:""}</div>
+        ${c.bio?`<p class="bio">${esc(c.bio)}</p>`:`<p class="bio" style="color:var(--muted);font-style:italic">${NA}</p>`}
+        <div class="contact">${contact}</div>
+      </div>`;
+    r.querySelector(".oval").onclick=()=>{ marked.has(id)?marked.delete(id):marked.add(id); save(); render(); };
+    rowsBox.append(r);
+  });
+}
+
+function shortlist(){
+  const box=$("#shortlist");
+  if(!marked.size){ box.innerHTML=""; box.hidden=true; return; }
+  box.hidden=false;
+  const pills = [];
+  marked.forEach(id=>{
+    const mc = C.find(c=>c.id===id);
+    if(mc){ pills.push(`<span class="pill">${mc.first} ${esc(mc.sur)}</span>`); return; }
+    const label = wardCandLabel(id);
+    if(label) pills.push(`<span class="pill">${esc(label)}</span>`);
+  });
+  box.innerHTML = '<span class="label">Your shortlist</span>' + pills.join("") + '<button class="chip" id="clear">Clear</button>';
+  $("#clear").onclick=()=>{marked.clear(); save(); render();};
+}
+
+function render(){
+  ["ballot","compare","ward","vote"].forEach(v=>{
+    $("#view-"+v).hidden = v!==view;
+    $("#tab-"+v).setAttribute("aria-selected", v===view);
+  });
+  chips(); rows(); table(); wardgrid(); wardView(); shortlist();
+}
+["ballot","compare","ward","vote"].forEach(v=> $("#tab-"+v).onclick=()=>{ view=v; try{localStorage.setItem("ham-view",v)}catch(e){} render(); });
+
+// Days to election (local date)
+(function(){
+  const e = new Date(2026,9,26); const n = new Date(); n.setHours(0,0,0,0);
+  const d = Math.round((e-n)/86400000);
+  $("#days").textContent = d>0 ? d : (d===0 ? "Today" : "Done");
+  const notice=$("#notice");
+  if (d<0) notice.hidden = true;
+  else if (d===0) notice.innerHTML = "<strong>Today is Election Day.</strong> Polls are open 10 a.m. to 8 p.m.";
+  else if (d<=3) notice.innerHTML = "<strong>Election Day is " + ($("#days").textContent) + " days away.</strong> Ballot-on-demand voting continues at Hamilton City Hall, 9 a.m. to 4 p.m., through Oct. 23.";
+})();
+
+render();
+</script>
+</body>
+</html>
